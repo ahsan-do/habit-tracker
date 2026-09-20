@@ -6,7 +6,7 @@ import {
 } from "@/lib/appwrite";
 import { Habit, HabitCompletion } from "@/types/database.type";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ID, Query } from "react-native-appwrite";
+import { ID, Models, Query } from "react-native-appwrite";
 
 // Query keys
 export const queryKeys = {
@@ -14,17 +14,38 @@ export const queryKeys = {
     completions: ["completions"] as const,
 };
 
+const PAGE_SIZE = 100;
+
+const listAllDocuments = async <Document extends Models.Document>(
+    collectionId: string,
+    queries: string[]
+) => {
+    const documents: Document[] = [];
+    let offset = 0;
+
+    do {
+        const response = await databases.listDocuments<Document>(
+            DATABASE_ID,
+            collectionId,
+            [...queries, Query.limit(PAGE_SIZE), Query.offset(offset)]
+        );
+        documents.push(...response.documents);
+        offset += response.documents.length;
+
+        if (offset >= response.total || response.documents.length === 0) {
+            return documents;
+        }
+    } while (true);
+};
+
 // Fetch habits
 export const useHabits = (userId: string) => {
     return useQuery({
-        queryKey: queryKeys.habits,
+        queryKey: [...queryKeys.habits, userId],
         queryFn: async () => {
-            const response = await databases.listDocuments(
-                DATABASE_ID,
-                HABITS_COLLECTION_ID,
-                [Query.equal("user_id", userId)]
-            );
-            return response.documents as Habit[];
+            return listAllDocuments<Habit>(HABITS_COLLECTION_ID, [
+                Query.equal("user_id", userId),
+            ]);
         },
         enabled: !!userId,
         staleTime: 1000 * 60, // Consider data fresh for 1 minute
@@ -35,23 +56,32 @@ export const useHabits = (userId: string) => {
 // Fetch today's completions
 export const useTodayCompletions = (userId: string) => {
     return useQuery({
-        queryKey: queryKeys.completions,
+        queryKey: [...queryKeys.completions, "today", userId],
         queryFn: async () => {
             const today = new Date();
             today.setHours(0, 0, 0, 0);
-            const response = await databases.listDocuments(
-                DATABASE_ID,
-                COMPLETIONS_COLLECTION_ID,
-                [
-                    Query.equal("user_id", userId),
-                    Query.greaterThanEqual("completed_at", today.toISOString()),
-                ]
-            );
-            return response.documents as HabitCompletion[];
+            return listAllDocuments<HabitCompletion>(COMPLETIONS_COLLECTION_ID, [
+                Query.equal("user_id", userId),
+                Query.greaterThanEqual("completed_at", today.toISOString()),
+            ]);
         },
         enabled: !!userId,
         staleTime: 1000 * 60, // Consider data fresh for 1 minute
         refetchInterval: 1000 * 30, // Refetch every 30 seconds
+    });
+};
+
+export const useAllCompletions = (userId: string) => {
+    return useQuery({
+        queryKey: [...queryKeys.completions, "all", userId],
+        queryFn: async () => {
+            return listAllDocuments<HabitCompletion>(COMPLETIONS_COLLECTION_ID, [
+                Query.equal("user_id", userId),
+                Query.orderDesc("completed_at"),
+            ]);
+        },
+        enabled: !!userId,
+        staleTime: 1000 * 60,
     });
 };
 

@@ -1,22 +1,22 @@
 {
   "expo": {
-    "name": "Project",
-    "slug": "Project",
+    "name": "Steadily",
+    "slug": "steadily",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "project",
+    "icon": "./assets/images/steadily-icon.png",
+    "scheme": "steadily",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.anonymous.steadily"
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/images/steadily-adaptive-icon.png",
+        "backgroundColor": "#6C5CE7"
       },
-      "edgeToEdgeEnabled": true
+      "package": "com.anonymous.steadily"
     },
     "web": {
       "bundler": "metro",
@@ -28,15 +28,22 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/steadily-splash.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "backgroundColor": "#6C5CE7"
         }
       ]
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "37bb6c54-cd47-4073-a9c4-3b52bf09b5bb"
+      }
+    },
+    "owner": "ahsan1999"
   }
 }
