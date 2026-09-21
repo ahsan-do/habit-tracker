@@ -9,6 +9,21 @@
       "android": {
         "buildType": "apk"
       }
+    },
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "production": {
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "development-ios-simulator": {
+      "developmentClient": true,
+      "ios": {
+        "simulator": true
+      }
     }
   }
 }

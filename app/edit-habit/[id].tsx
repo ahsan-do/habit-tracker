@@ -1,15 +1,14 @@
-import { useAuth } from "@/lib/auth-context";
-import { useCreateHabit } from "@/lib/queries";
+import { useUpdateHabit } from "@/lib/queries";
 import { useAppPalette } from "@/lib/theme";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  View,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    View,
 } from "react-native";
 import { Button, SegmentedButtons, Text, TextInput } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -17,31 +16,41 @@ import { SafeAreaView } from "react-native-safe-area-context";
 const FREQUENCIES = ["daily", "weekly", "monthly"] as const;
 type Frequency = (typeof FREQUENCIES)[number];
 
-export default function AddHabitScreen() {
+export default function EditHabitScreen() {
   const colors = useAppPalette();
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [frequency, setFrequency] = useState<Frequency>("daily");
-  const [error, setError] = useState("");
-  const { user } = useAuth();
   const router = useRouter();
-  const createHabit = useCreateHabit();
+  const params = useLocalSearchParams<{
+    id: string;
+    title: string;
+    description: string;
+    frequency: string;
+  }>();
+
+  const [title, setTitle] = useState(params.title ?? "");
+  const [description, setDescription] = useState(params.description ?? "");
+  const [frequency, setFrequency] = useState<Frequency>(
+    (params.frequency as Frequency) ?? "daily",
+  );
+  const [error, setError] = useState("");
+  const updateHabit = useUpdateHabit();
 
   const handleSubmit = async () => {
-    if (!user) return;
+    if (!params.id) return;
     try {
-      await createHabit.mutateAsync({
-        user_id: user.$id,
-        title: title.trim(),
-        description: description.trim(),
-        frequency,
+      await updateHabit.mutateAsync({
+        habitId: params.id,
+        updates: {
+          title: title.trim(),
+          description: description.trim(),
+          frequency,
+        },
       });
-      router.replace("/");
+      router.back();
     } catch (caughtError) {
       setError(
         caughtError instanceof Error
           ? caughtError.message
-          : "We couldn't create this habit. Please try again.",
+          : "We couldn't save this habit. Please try again.",
       );
     }
   };
@@ -64,16 +73,14 @@ export default function AddHabitScreen() {
             style={[styles.heroIcon, { backgroundColor: colors.primarySoft }]}
           >
             <MaterialCommunityIcons
-              name="sprout"
-              size={33}
+              name="pencil"
+              size={30}
               color={colors.primary}
             />
           </View>
-          <Text style={[styles.title, { color: colors.text }]}>
-            Build a new rhythm
-          </Text>
+          <Text style={[styles.title, { color: colors.text }]}>Edit habit</Text>
           <Text style={[styles.subtitle, { color: colors.muted }]}>
-            Keep it small and specific. You can always build on it later.
+            Adjust the details — your streak stays intact.
           </Text>
           <View
             style={[
@@ -86,7 +93,6 @@ export default function AddHabitScreen() {
             </Text>
             <TextInput
               label="Habit name"
-              placeholder="e.g. Take a 10 minute walk"
               value={title}
               onChangeText={setTitle}
               mode="outlined"
@@ -99,7 +105,6 @@ export default function AddHabitScreen() {
             </Text>
             <TextInput
               label="Why does this matter?"
-              placeholder="A short reminder for future you"
               value={description}
               onChangeText={setDescription}
               mode="outlined"
@@ -134,13 +139,13 @@ export default function AddHabitScreen() {
             textColor={colors.onPrimary}
             onPress={handleSubmit}
             disabled={
-              !title.trim() || !description.trim() || createHabit.isPending
+              !title.trim() || !description.trim() || updateHabit.isPending
             }
-            loading={createHabit.isPending}
+            loading={updateHabit.isPending}
             contentStyle={styles.submitContent}
             style={styles.submit}
           >
-            Create habit
+            Save changes
           </Button>
           <Button
             mode="text"
@@ -157,11 +162,10 @@ export default function AddHabitScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#F8F8FC" },
+  safeArea: { flex: 1 },
   content: { padding: 24, paddingBottom: 48 },
   heroIcon: {
     alignItems: "center",
-    backgroundColor: "#EFEDFF",
     borderRadius: 27,
     height: 54,
     justifyContent: "center",
@@ -169,39 +173,26 @@ const styles = StyleSheet.create({
     width: 54,
   },
   title: {
-    color: "#28253A",
     fontSize: 27,
     fontWeight: "800",
     letterSpacing: -0.7,
     marginTop: 20,
   },
-  subtitle: { color: "#858197", fontSize: 14, lineHeight: 21, marginTop: 7 },
-  formCard: {
-    backgroundColor: "#FFFFFF",
-    borderColor: "#EAE7F2",
-    borderRadius: 22,
-    borderWidth: 1,
-    marginTop: 28,
-    padding: 18,
-  },
+  subtitle: { fontSize: 14, lineHeight: 21, marginTop: 7 },
+  formCard: { borderRadius: 22, borderWidth: 1, marginTop: 28, padding: 18 },
   label: {
-    color: "#817C94",
     fontSize: 10,
     fontWeight: "800",
     letterSpacing: 1.1,
     marginBottom: 8,
     marginTop: 3,
   },
-  input: { backgroundColor: "#FFFFFF", marginBottom: 20 },
-  descriptionInput: {
-    backgroundColor: "#FFFFFF",
-    marginBottom: 20,
-    minHeight: 98,
-  },
+  input: { marginBottom: 20 },
+  descriptionInput: { marginBottom: 20, minHeight: 98 },
   inputOutline: { borderRadius: 13 },
   segmented: { marginBottom: 4 },
-  submit: { backgroundColor: "#6C5CE7", borderRadius: 14, marginTop: 20 },
+  submit: { borderRadius: 14, marginTop: 20 },
   submitContent: { height: 52 },
   cancel: { marginTop: 8 },
-  error: { color: "#C83D50", fontSize: 13, marginTop: 14 },
+  error: { fontSize: 13, marginTop: 14 },
 });

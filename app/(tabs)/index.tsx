@@ -1,17 +1,18 @@
 import HabitsList from "@/app/components/HabitsList";
 import { useAuth } from "@/lib/auth-context";
+import { isCurrentPeriod } from "@/lib/habit-utils";
 import {
   useCompleteHabit,
+  useCurrentPeriodCompletions,
   useDeleteHabit,
   useHabits,
-  useTodayCompletions,
 } from "@/lib/queries";
 import { useAppPalette } from "@/lib/theme";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
-import { IconButton, Text } from "react-native-paper";
+import { IconButton, Snackbar, Text } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Index() {
@@ -23,14 +24,24 @@ export default function Index() {
     refetch: refetchHabits,
     isRefetching,
   } = useHabits(user?.$id ?? "");
+  const [freezeToast, setFreezeToast] = useState(false);
+
   const { data: completions = [], refetch: refetchCompletions } =
-    useTodayCompletions(user?.$id ?? "");
+    useCurrentPeriodCompletions(user?.$id ?? "");
   const deleteHabit = useDeleteHabit();
   const completeHabit = useCompleteHabit();
   const completedHabits = useMemo(
     () =>
-      Array.from(new Set(completions.map((completion) => completion.habit_id))),
-    [completions],
+      habits
+        .filter((habit) =>
+          completions.some(
+            (completion) =>
+              completion.habit_id === habit.$id &&
+              isCurrentPeriod(completion.completed_at, habit.frequency),
+          ),
+        )
+        .map((habit) => habit.$id),
+    [habits, completions],
   );
   const completedCount = habits.filter((habit) =>
     completedHabits.includes(habit.$id),
@@ -59,12 +70,14 @@ export default function Index() {
     if (!user || completedHabits.includes(id)) return;
     try {
       const habit = habits.find((item) => item.$id === id);
-      if (habit)
-        await completeHabit.mutateAsync({
+      if (habit) {
+        const { usedFreeze } = await completeHabit.mutateAsync({
           habitId: id,
           userId: user.$id,
           habit,
         });
+        if (usedFreeze) setFreezeToast(true);
+      }
     } catch (error) {
       console.error(error);
     }
@@ -177,11 +190,19 @@ export default function Index() {
               color={colors.muted}
             />
             <Text style={[styles.hintText, { color: colors.muted }]}>
-              Swipe left to delete a habit
+              Swipe left to delete • right to edit
             </Text>
           </View>
         )}
       </ScrollView>
+      <Snackbar
+        visible={freezeToast}
+        onDismiss={() => setFreezeToast(false)}
+        duration={2500}
+        style={{ backgroundColor: colors.primary }}
+      >
+        ❄️ Streak saved with a freeze
+      </Snackbar>
     </SafeAreaView>
   );
 }

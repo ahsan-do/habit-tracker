@@ -86,6 +86,10 @@ export default function RootLayout() {
                     options={{ headerShown: false }}
                   />
                   <Stack.Screen name="auth" options={{ headerShown: false }} />
+                  <Stack.Screen
+                    name="edit-habit/[id]"
+                    options={{ headerShown: false, presentation: "modal" }}
+                  />
                 </Stack>
               </RouteGuard>
             </SafeAreaProvider>
