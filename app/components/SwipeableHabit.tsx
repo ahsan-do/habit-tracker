@@ -50,6 +50,10 @@ const SwipeableHabit = ({
         title: habit.title,
         description: habit.description,
         frequency: habit.frequency,
+        reminder_enabled: habit.reminder_enabled ? "true" : "false",
+        reminder_time: habit.reminder_time ?? "",
+        reminder_weekday: String(habit.reminder_weekday ?? 1),
+        reminder_day_of_month: String(habit.reminder_day_of_month ?? 1),
       },
     });
   };

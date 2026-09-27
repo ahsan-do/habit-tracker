@@ -1,20 +1,29 @@
+import ReminderPicker from "@/app/components/ReminderPicker";
 import { useUpdateHabit } from "@/lib/queries";
 import { useAppPalette } from "@/lib/theme";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import {
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    View,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  View,
 } from "react-native";
 import { Button, SegmentedButtons, Text, TextInput } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const FREQUENCIES = ["daily", "weekly", "monthly"] as const;
 type Frequency = (typeof FREQUENCIES)[number];
+
+const parseTimeToDate = (isoOrTime: string) => {
+  const parsed = new Date(isoOrTime);
+  if (!Number.isNaN(parsed.getTime())) return parsed;
+  const fallback = new Date();
+  fallback.setHours(9, 0, 0, 0);
+  return fallback;
+};
 
 export default function EditHabitScreen() {
   const colors = useAppPalette();
@@ -24,6 +33,10 @@ export default function EditHabitScreen() {
     title: string;
     description: string;
     frequency: string;
+    reminder_enabled: string;
+    reminder_time: string;
+    reminder_weekday: string;
+    reminder_day_of_month: string;
   }>();
 
   const [title, setTitle] = useState(params.title ?? "");
@@ -31,18 +44,36 @@ export default function EditHabitScreen() {
   const [frequency, setFrequency] = useState<Frequency>(
     (params.frequency as Frequency) ?? "daily",
   );
+  const [reminderEnabled, setReminderEnabled] = useState(
+    params.reminder_enabled === "true",
+  );
+  const [reminderTime, setReminderTime] = useState(() =>
+    parseTimeToDate(params.reminder_time || "09:00"),
+  );
+  const [reminderWeekday, setReminderWeekday] = useState(
+    Number(params.reminder_weekday) || 1,
+  );
+  const [reminderDayOfMonth, setReminderDayOfMonth] = useState(
+    Number(params.reminder_day_of_month) || 1,
+  );
   const [error, setError] = useState("");
   const updateHabit = useUpdateHabit();
 
   const handleSubmit = async () => {
     if (!params.id) return;
     try {
+      const pad = (n: number) => n.toString().padStart(2, "0");
+
       await updateHabit.mutateAsync({
         habitId: params.id,
         updates: {
           title: title.trim(),
           description: description.trim(),
           frequency,
+          reminder_enabled: reminderEnabled,
+          reminder_time: reminderTime.toISOString(),
+          reminder_weekday: reminderWeekday,
+          reminder_day_of_month: reminderDayOfMonth,
         },
       });
       router.back();
@@ -128,6 +159,20 @@ export default function EditHabitScreen() {
               }))}
               style={styles.segmented}
             />
+            <View
+              style={[styles.divider, { backgroundColor: colors.border }]}
+            />
+            <ReminderPicker
+              enabled={reminderEnabled}
+              onToggleEnabled={setReminderEnabled}
+              time={reminderTime}
+              onChangeTime={setReminderTime}
+              frequency={frequency}
+              weekday={reminderWeekday}
+              onChangeWeekday={setReminderWeekday}
+              dayOfMonth={reminderDayOfMonth}
+              onChangeDayOfMonth={setReminderDayOfMonth}
+            />
           </View>
           {error ? (
             <Text style={[styles.error, { color: colors.error }]}>{error}</Text>
@@ -191,6 +236,7 @@ const styles = StyleSheet.create({
   descriptionInput: { marginBottom: 20, minHeight: 98 },
   inputOutline: { borderRadius: 13 },
   segmented: { marginBottom: 4 },
+  divider: { height: 1, marginVertical: 18 },
   submit: { borderRadius: 14, marginTop: 20 },
   submitContent: { height: 52 },
   cancel: { marginTop: 8 },

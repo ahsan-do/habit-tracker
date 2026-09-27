@@ -1,7 +1,10 @@
+import { ensureNotificationPermission } from "@/lib/notifications";
 import { useAppPalette } from "@/lib/theme";
-import DateTimePicker from "@react-native-community/datetimepicker";
+import DateTimePicker, {
+  DateTimePickerAndroid,
+} from "@react-native-community/datetimepicker";
 import { useState } from "react";
-import { Platform, Pressable, StyleSheet, View } from "react-native";
+import { Alert, Platform, Pressable, StyleSheet, View } from "react-native";
 import { Switch, Text } from "react-native-paper";
 
 const WEEKDAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"];
@@ -34,6 +37,42 @@ const ReminderPicker = ({
 }: ReminderPickerProps) => {
   const colors = useAppPalette();
   const [showPicker, setShowPicker] = useState(false);
+  const [requesting, setRequesting] = useState(false);
+
+  const handleToggle = async (value: boolean) => {
+    if (!value) {
+      onToggleEnabled(false);
+      return;
+    }
+    setRequesting(true);
+    try {
+      const granted = await ensureNotificationPermission();
+      if (!granted) {
+        Alert.alert(
+          "Notifications disabled",
+          "Turn on notifications for this app in your device settings to get habit reminders.",
+        );
+        return;
+      }
+      onToggleEnabled(true);
+    } finally {
+      setRequesting(false);
+    }
+  };
+
+  const openTimePicker = () => {
+    if (Platform.OS === "android") {
+      DateTimePickerAndroid.open({
+        value: time,
+        mode: "time",
+        onValueChange: (_event, selectedDate) => {
+          onChangeTime(selectedDate);
+        },
+      });
+    } else {
+      setShowPicker(true);
+    }
+  };
 
   return (
     <View>
@@ -48,7 +87,8 @@ const ReminderPicker = ({
         </View>
         <Switch
           value={enabled}
-          onValueChange={onToggleEnabled}
+          onValueChange={handleToggle}
+          disabled={requesting}
           color={colors.primary}
         />
       </View>
@@ -56,7 +96,7 @@ const ReminderPicker = ({
       {enabled && (
         <View style={styles.detail}>
           <Pressable
-            onPress={() => setShowPicker(true)}
+            onPress={openTimePicker}
             style={[
               styles.timeButton,
               { borderColor: colors.border, backgroundColor: colors.input },
@@ -67,14 +107,13 @@ const ReminderPicker = ({
             </Text>
           </Pressable>
 
-          {showPicker && (
+          {showPicker && Platform.OS === "ios" && (
             <DateTimePicker
               value={time}
               mode="time"
-              display={Platform.OS === "ios" ? "spinner" : "default"}
-              onChange={(_, selected) => {
-                setShowPicker(Platform.OS === "ios");
-                if (selected) onChangeTime(selected);
+              display="spinner"
+              onValueChange={(_event, selectedDate) => {
+                onChangeTime(selectedDate);
               }}
             />
           )}

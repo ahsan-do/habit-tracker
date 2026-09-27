@@ -16,7 +16,8 @@
         "foregroundImage": "./assets/images/steadily-adaptive-icon.png",
         "backgroundColor": "#6C5CE7"
       },
-      "package": "com.anonymous.steadily"
+      "package": "com.anonymous.steadily",
+      "permissions": ["android.permission.POST_NOTIFICATIONS"]
     },
     "web": {
       "bundler": "metro",

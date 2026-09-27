@@ -46,7 +46,7 @@ export default function AddHabitScreen() {
         description: description.trim(),
         frequency,
         reminder_enabled: reminderEnabled,
-        reminder_time: `${pad(reminderTime.getHours())}:${pad(reminderTime.getMinutes())}`,
+        reminder_time: reminderTime.toISOString(),
         reminder_weekday: reminderWeekday,
         reminder_day_of_month: reminderDayOfMonth,
       });

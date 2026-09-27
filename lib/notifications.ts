@@ -31,9 +31,10 @@ export const setupAndroidChannel = async () => {
   });
 };
 
-const parseTime = (time: string) => {
-  const [hour, minute] = time.split(":").map(Number);
-  return { hour: hour || 0, minute: minute || 0 };
+const parseTime = (isoTime: string) => {
+  const date = new Date(isoTime);
+  if (Number.isNaN(date.getTime())) return { hour: 9, minute: 0 };
+  return { hour: date.getHours(), minute: date.getMinutes() };
 };
 
 interface ScheduleParams {
