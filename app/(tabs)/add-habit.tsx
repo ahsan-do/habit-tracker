@@ -1,3 +1,4 @@
+import ReminderPicker from "@/app/components/ReminderPicker";
 import { useAuth } from "@/lib/auth-context";
 import { useCreateHabit } from "@/lib/queries";
 import { useAppPalette } from "@/lib/theme";
@@ -22,6 +23,14 @@ export default function AddHabitScreen() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [frequency, setFrequency] = useState<Frequency>("daily");
+  const [reminderEnabled, setReminderEnabled] = useState(false);
+  const [reminderTime, setReminderTime] = useState(() => {
+    const d = new Date();
+    d.setHours(9, 0, 0, 0);
+    return d;
+  });
+  const [reminderWeekday, setReminderWeekday] = useState(1); // Monday default
+  const [reminderDayOfMonth, setReminderDayOfMonth] = useState(1);
   const [error, setError] = useState("");
   const { user } = useAuth();
   const router = useRouter();
@@ -30,11 +39,16 @@ export default function AddHabitScreen() {
   const handleSubmit = async () => {
     if (!user) return;
     try {
+      const pad = (n: number) => n.toString().padStart(2, "0");
       await createHabit.mutateAsync({
         user_id: user.$id,
         title: title.trim(),
         description: description.trim(),
         frequency,
+        reminder_enabled: reminderEnabled,
+        reminder_time: `${pad(reminderTime.getHours())}:${pad(reminderTime.getMinutes())}`,
+        reminder_weekday: reminderWeekday,
+        reminder_day_of_month: reminderDayOfMonth,
       });
       router.replace("/");
     } catch (caughtError) {
@@ -123,6 +137,20 @@ export default function AddHabitScreen() {
               }))}
               style={styles.segmented}
             />
+            <View
+              style={[styles.divider, { backgroundColor: colors.border }]}
+            />
+            <ReminderPicker
+              enabled={reminderEnabled}
+              onToggleEnabled={setReminderEnabled}
+              time={reminderTime}
+              onChangeTime={setReminderTime}
+              frequency={frequency}
+              weekday={reminderWeekday}
+              onChangeWeekday={setReminderWeekday}
+              dayOfMonth={reminderDayOfMonth}
+              onChangeDayOfMonth={setReminderDayOfMonth}
+            />
           </View>
           {error ? (
             <Text style={[styles.error, { color: colors.error }]}>{error}</Text>
@@ -204,4 +232,5 @@ const styles = StyleSheet.create({
   submitContent: { height: 52 },
   cancel: { marginTop: 8 },
   error: { color: "#C83D50", fontSize: 13, marginTop: 14 },
+  divider: { height: 1, marginVertical: 18 },
 });

@@ -1,16 +1,17 @@
 import {
-    COMPLETIONS_COLLECTION_ID,
-    DATABASE_ID,
-    databases,
-    HABITS_COLLECTION_ID,
+  COMPLETIONS_COLLECTION_ID,
+  DATABASE_ID,
+  databases,
+  HABITS_COLLECTION_ID,
 } from "@/lib/appwrite";
 import {
-    freezesNeedReset,
-    isFreezeableGap,
-    MONTHLY_FREEZE_ALLOWANCE,
-    periodsBetween,
-    startOfCurrentMonthISO,
+  freezesNeedReset,
+  isFreezeableGap,
+  MONTHLY_FREEZE_ALLOWANCE,
+  periodsBetween,
+  startOfCurrentMonthISO,
 } from "@/lib/habit-utils";
+import { cancelHabitReminder, syncHabitReminder } from "@/lib/notifications";
 import { Habit, HabitCompletion } from "@/types/database.type";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ID, Models, Query } from "react-native-appwrite";
@@ -104,8 +105,12 @@ export const useCreateHabit = () => {
       title: string;
       description: string;
       frequency: string;
+      reminder_enabled?: boolean;
+      reminder_time?: string;
+      reminder_weekday?: number;
+      reminder_day_of_month?: number;
     }) => {
-      return await databases.createDocument(
+      const created = await databases.createDocument<Habit>(
         DATABASE_ID,
         HABITS_COLLECTION_ID,
         ID.unique(),
@@ -118,6 +123,8 @@ export const useCreateHabit = () => {
           freezes_reset_at: startOfCurrentMonthISO(),
         },
       );
+      await syncHabitReminder(created);
+      return created;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.habits });
@@ -130,7 +137,14 @@ export const useDeleteHabit = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (habitId: string) => {
+    mutationFn: async ({
+      habitId,
+      notificationId,
+    }: {
+      habitId: string;
+      notificationId?: string;
+    }) => {
+      await cancelHabitReminder(notificationId);
       return await databases.deleteDocument(
         DATABASE_ID,
         HABITS_COLLECTION_ID,
@@ -224,14 +238,27 @@ export const useUpdateHabit = () => {
       updates,
     }: {
       habitId: string;
-      updates: Partial<Pick<Habit, "title" | "description" | "frequency">>;
+      updates: Partial<
+        Pick<
+          Habit,
+          | "title"
+          | "description"
+          | "frequency"
+          | "reminder_enabled"
+          | "reminder_time"
+          | "reminder_weekday"
+          | "reminder_day_of_month"
+        >
+      >;
     }) => {
-      return await databases.updateDocument(
+      const updated = await databases.updateDocument<Habit>(
         DATABASE_ID,
         HABITS_COLLECTION_ID,
         habitId,
         updates,
       );
+      await syncHabitReminder(updated);
+      return updated;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.habits });

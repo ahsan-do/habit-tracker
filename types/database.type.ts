@@ -10,6 +10,11 @@ export interface Habit extends Models.Document {
   created_at: string;
   freezes_available?: number;
   freezes_reset_at?: string;
+  reminder_enabled?: boolean;
+  reminder_time?: string;
+  reminder_weekday?: number;
+  reminder_day_of_month?: number;
+  notification_id?: string;
 }
 
 export interface HabitCompletion extends Models.Document {

@@ -60,8 +60,12 @@ export default function Index() {
     await Promise.all([refetchHabits(), refetchCompletions()]);
   };
   const handleDeleteHabit = async (id: string) => {
+    const habit = habits.find((item) => item.$id === id);
     try {
-      await deleteHabit.mutateAsync(id);
+      await deleteHabit.mutateAsync({
+        habitId: id,
+        notificationId: habit?.notification_id,
+      });
     } catch (error) {
       console.error(error);
     }
