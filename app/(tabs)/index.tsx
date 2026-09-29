@@ -25,6 +25,7 @@ export default function Index() {
     isRefetching,
   } = useHabits(user?.$id ?? "");
   const [freezeToast, setFreezeToast] = useState(false);
+  const [errorToast, setErrorToast] = useState<string | null>(null);
 
   const { data: completions = [], refetch: refetchCompletions } =
     useCurrentPeriodCompletions(user?.$id ?? "");
@@ -68,8 +69,12 @@ export default function Index() {
       });
     } catch (error) {
       console.error(error);
+      setErrorToast(
+        "Couldn't delete that habit. Check your connection and try again.",
+      );
     }
   };
+
   const handleCompleteHabit = async (id: string) => {
     if (!user || completedHabits.includes(id)) return;
     try {
@@ -84,6 +89,9 @@ export default function Index() {
       }
     } catch (error) {
       console.error(error);
+      setErrorToast(
+        "Couldn't mark that complete. Check your connection and try again.",
+      );
     }
   };
 
@@ -206,6 +214,15 @@ export default function Index() {
         style={{ backgroundColor: colors.primary }}
       >
         ❄️ Streak saved with a freeze
+      </Snackbar>
+      <Snackbar
+        visible={!!errorToast}
+        onDismiss={() => setErrorToast(null)}
+        duration={3500}
+        style={{ backgroundColor: colors.error ?? "#C83D50" }}
+        action={{ label: "Dismiss", onPress: () => setErrorToast(null) }}
+      >
+        {errorToast}
       </Snackbar>
     </SafeAreaView>
   );

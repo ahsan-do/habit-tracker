@@ -11,7 +11,13 @@ import {
   StyleSheet,
   View,
 } from "react-native";
-import { Button, SegmentedButtons, Text, TextInput } from "react-native-paper";
+import {
+  Button,
+  SegmentedButtons,
+  Snackbar,
+  Text,
+  TextInput,
+} from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const FREQUENCIES = ["daily", "weekly", "monthly"] as const;
@@ -38,6 +44,7 @@ export default function EditHabitScreen() {
     reminder_weekday: string;
     reminder_day_of_month: string;
   }>();
+  const [errorToast, setErrorToast] = useState<string | null>(null);
 
   const [title, setTitle] = useState(params.title ?? "");
   const [description, setDescription] = useState(params.description ?? "");
@@ -78,10 +85,10 @@ export default function EditHabitScreen() {
       });
       router.back();
     } catch (caughtError) {
-      setError(
+      setErrorToast(
         caughtError instanceof Error
           ? caughtError.message
-          : "We couldn't save this habit. Please try again.",
+          : "We couldn't edit this habit. Please try again.",
       );
     }
   };
@@ -174,9 +181,7 @@ export default function EditHabitScreen() {
               onChangeDayOfMonth={setReminderDayOfMonth}
             />
           </View>
-          {error ? (
-            <Text style={[styles.error, { color: colors.error }]}>{error}</Text>
-          ) : null}
+
           <Button
             mode="contained"
             icon="check"
@@ -201,6 +206,15 @@ export default function EditHabitScreen() {
             Cancel
           </Button>
         </ScrollView>
+        <Snackbar
+          visible={!!errorToast}
+          onDismiss={() => setErrorToast(null)}
+          duration={3500}
+          style={{ backgroundColor: colors.error ?? "#C83D50" }}
+          action={{ label: "Dismiss", onPress: () => setErrorToast(null) }}
+        >
+          {errorToast}
+        </Snackbar>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

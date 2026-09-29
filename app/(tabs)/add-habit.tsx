@@ -12,7 +12,13 @@ import {
   StyleSheet,
   View,
 } from "react-native";
-import { Button, SegmentedButtons, Text, TextInput } from "react-native-paper";
+import {
+  Button,
+  SegmentedButtons,
+  Snackbar,
+  Text,
+  TextInput,
+} from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const FREQUENCIES = ["daily", "weekly", "monthly"] as const;
@@ -24,14 +30,15 @@ export default function AddHabitScreen() {
   const [description, setDescription] = useState("");
   const [frequency, setFrequency] = useState<Frequency>("daily");
   const [reminderEnabled, setReminderEnabled] = useState(false);
+
   const [reminderTime, setReminderTime] = useState(() => {
     const d = new Date();
     d.setHours(9, 0, 0, 0);
     return d;
   });
-  const [reminderWeekday, setReminderWeekday] = useState(1); // Monday default
+  const [reminderWeekday, setReminderWeekday] = useState(1);
   const [reminderDayOfMonth, setReminderDayOfMonth] = useState(1);
-  const [error, setError] = useState("");
+  const [errorToast, setErrorToast] = useState<string | null>(null);
   const { user } = useAuth();
   const router = useRouter();
   const createHabit = useCreateHabit();
@@ -39,7 +46,6 @@ export default function AddHabitScreen() {
   const handleSubmit = async () => {
     if (!user) return;
     try {
-      const pad = (n: number) => n.toString().padStart(2, "0");
       await createHabit.mutateAsync({
         user_id: user.$id,
         title: title.trim(),
@@ -52,7 +58,7 @@ export default function AddHabitScreen() {
       });
       router.replace("/");
     } catch (caughtError) {
-      setError(
+      setErrorToast(
         caughtError instanceof Error
           ? caughtError.message
           : "We couldn't create this habit. Please try again.",
@@ -152,9 +158,6 @@ export default function AddHabitScreen() {
               onChangeDayOfMonth={setReminderDayOfMonth}
             />
           </View>
-          {error ? (
-            <Text style={[styles.error, { color: colors.error }]}>{error}</Text>
-          ) : null}
           <Button
             mode="contained"
             icon="check"
@@ -179,6 +182,15 @@ export default function AddHabitScreen() {
             Cancel
           </Button>
         </ScrollView>
+        <Snackbar
+          visible={!!errorToast}
+          onDismiss={() => setErrorToast(null)}
+          duration={3500}
+          style={{ backgroundColor: colors.error ?? "#C83D50" }}
+          action={{ label: "Dismiss", onPress: () => setErrorToast(null) }}
+        >
+          {errorToast}
+        </Snackbar>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -231,6 +243,5 @@ const styles = StyleSheet.create({
   submit: { backgroundColor: "#6C5CE7", borderRadius: 14, marginTop: 20 },
   submitContent: { height: 52 },
   cancel: { marginTop: 8 },
-  error: { color: "#C83D50", fontSize: 13, marginTop: 14 },
   divider: { height: 1, marginVertical: 18 },
 });

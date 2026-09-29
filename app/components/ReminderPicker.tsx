@@ -122,6 +122,7 @@ const ReminderPicker = ({
             <View style={styles.weekdayRow}>
               {WEEKDAY_LABELS.map((label, index) => {
                 const active = weekday === index;
+                const isToday = new Date().getDay() === index;
                 return (
                   <Pressable
                     key={index}
@@ -132,6 +133,8 @@ const ReminderPicker = ({
                         backgroundColor: active
                           ? colors.primary
                           : colors.primarySoft,
+                        borderWidth: isToday ? 2 : 0,
+                        borderColor: isToday ? colors.primary : "transparent",
                       },
                     ]}
                   >
